@@ -3,3 +3,12 @@
     color: aqua;
 }
 
+.solutionItem {
+    cursor: pointer;
+}
+
+.solutionItem :hover{
+    cursor: pointer;
+    opacity: 0.5 !important;
+}
+

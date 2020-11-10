@@ -1,8 +1,9 @@
 import React from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { Container, Row, Col, Button, Modal, ListGroup } from "react-bootstrap";
 import "./aaaa.css";
 import ab from "../../queen.png";
 
+const Item = ListGroup.Item;
 const colors = {
   1: "gray",
   2: "green",
@@ -18,7 +19,6 @@ export default class MainScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      
       board: [],
       /*
       board: [
@@ -30,45 +30,56 @@ export default class MainScreen extends React.Component {
       */
       solution: [],
       queens: 8,
+      show: false,
+      showselected: false,
+      curSelectSolution: null,
     };
   }
 
   componentDidMount() {
-      var curBoard = [];
-      for (var i = 0; i < this.state.queens; i++) {
-          curBoard.push(new Array(this.state.queens).fill(0));
-      }
-      this.setState({board: curBoard});
+    var curBoard = [];
+    for (var i = 0; i < this.state.queens; i++) {
+      curBoard.push(new Array(this.state.queens).fill(0));
+    }
+    this.setState({ board: curBoard });
   }
 
   clear = () => {
-      var newBoard = [];
-      this.state.board.forEach(val => {
-          newBoard.push(new Array(val.length).fill(0));
-      })
-      this.setState({
-          board: newBoard,
-          solution: [],
-          queens: 8,
-      });
+    var newBoard = [];
+    this.state.board.forEach((val) => {
+      newBoard.push(new Array(val.length).fill(0));
+    });
+    this.setState({
+      board: newBoard,
+      solution: [],
+      queens: 8,
+    });
 
-      alert(JSON.stringify(newBoard));
-      this.forceUpdate();
-  }
+    alert(JSON.stringify(newBoard));
+    this.forceUpdate();
+  };
 
-  change = () => {
+  setCurSolution = (e, i) => {
     var cur = [];
     for (var j = 0; j < 8; j++) cur.push(this.state.board[j]);
-    this.state.solution[0].forEach(val => {
-        cur[val[0]][val[1]] = 1;
+    this.state.solution[i].forEach((val) => {
+      cur[val[0]][val[1]] = 1;
     });
-    alert(JSON.stringify(cur));
-    this.setState({board:cur});
+    this.setState({ curSelectSolution: cur });
+    this.handleOpenS();
+  };
 
+  change = (e, i) => {
+    var cur = [];
+    for (var j = 0; j < 8; j++) cur.push(this.state.board[j]);
+    const solutionnow = this.state.solution[i] || this.state.solution[0];
+    solutionnow.forEach((val) => {
+      cur[val[0]][val[1]] = 1;
+    });
+    this.setState({ board: cur });
   };
 
   solve = () => {
-
     var list = [],
       ans = [];
     this.backTracking(
@@ -81,7 +92,7 @@ export default class MainScreen extends React.Component {
     );
     this.setState({ solution: ans });
     if (ans.length === 0) {
-        alert("there is no solution for this board");
+      alert("there is no solution for this board");
     }
     this.forceUpdate();
   };
@@ -89,7 +100,7 @@ export default class MainScreen extends React.Component {
   backTracking = (set, x, n, board, a, ans) => {
     if (n === 0) {
       var tmp = [];
-      a.map((val) => {
+      a.forEach((val) => {
         tmp.push(val);
       });
       ans.push(tmp);
@@ -99,7 +110,12 @@ export default class MainScreen extends React.Component {
     for (var start = x; start < board.length * board.length; start++) {
       var i = parseInt(start / board.length, 10),
         j = parseInt(start % board.length, 10);
-      if (set.has(i + "row") || set.has(j + "col") || set.has(i - j + "d") || this.state.board[i][j] === 1)
+      if (
+        set.has(i + "row") ||
+        set.has(j + "col") ||
+        set.has(i - j + "d") ||
+        this.state.board[i][j] === 1
+      )
         continue;
       set.add(i + "row");
       set.add(j + "col");
@@ -133,24 +149,113 @@ export default class MainScreen extends React.Component {
     this.forceUpdate();
   };
 
+  // close modal
+  handleClose = () => {
+    this.setState({ show: false });
+  };
+  handleCloseS = () => {
+    this.setState({ showselected: false, show: true });
+  };
+
+  handleOpen = () => {
+    this.setState({ show: true });
+  };
+
+  handleOpenS = () => {
+    this.setState({ showselected: true, show: false });
+  };
   render() {
+    const { show, showselected } = this.state;
     return (
       <>
+        <Modal show={showselected} onHide={this.handleCloseS}>
+          <Modal.Header closeButton>
+            <Modal.Title>{`Current selected solution`}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {this.state.curSelectSolution &&
+              this.state.curSelectSolution.map((val, index) => {
+                return (
+                  <Item style={{ textAlign: "center" }}>
+                    {JSON.stringify(val.join(`      `))}
+                  </Item>
+                );
+              })}
+        
+          </Modal.Body>
+          <Modal.Footer>
+              <Button variant="secondary" onClick={(e) => this.change(e, 0)}>
+                yes
+              </Button>
+            </Modal.Footer>
+        </Modal>
+        <Modal show={show} onHide={this.handleClose}>
+          <Modal.Header closeButton>
+            <Modal.Title>{`Total solution: ${this.state.solution.length}`}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {this.state.solution &&
+              this.state.solution.map((val, index) => {
+                return (
+                  <Item
+                    className="solutionItem"
+                    onClick={(e) => this.setCurSolution(e, index)}
+                  >
+                    {`solution ${index}:  ${JSON.stringify(val)}`}
+                  </Item>
+                );
+              })}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.handleClose}>
+              Close
+            </Button>
+            <Button variant="primary" onClick={this.handleClose}>
+              Save Changes
+            </Button>
+          </Modal.Footer>
+        </Modal>
         <Container style={{ marginTop: "10vh", marginBottom: " 10vh" }}>
           <Row>
-            <Col>
+            <Col xs={3}>
               {" "}
-              <Button style={{ width: "80%" }} onClick={this.solve}>
+              <Button
+                style={{ width: "80%" }}
+                variant="warning"
+                onClick={this.solve}
+              >
                 sovling puzzle
               </Button>
             </Col>
-            <Col>
+            <Col xs={3}>
               {" "}
-              <Button style={{ width: "80%" }} onClick={this.change}>generate</Button>
+              <Button
+                style={{ width: "80%" }}
+                variant="warning"
+                onClick={this.change}
+              >
+                generate
+              </Button>
             </Col>
-            <Col>
+            <Col xs={3}>
               {" "}
-              <Button style={{ width: "80%" }} onClick={this.clear}>clear</Button>
+              <Button
+                style={{ width: "80%" }}
+                variant="warning"
+                onClick={this.clear}
+              >
+                clear
+              </Button>
+            </Col>
+            <Col xs={3}>
+              {" "}
+              <Button
+                style={{ width: "80%" }}
+                variant="warning"
+                onClick={this.handleOpen}
+              >
+                show solution
+              </Button>
             </Col>
           </Row>
           {this.state.board.map((val, index) => {
