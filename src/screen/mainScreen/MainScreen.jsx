@@ -172,6 +172,7 @@ export default class MainScreen extends React.Component {
                   const img = vall === 1 ? ab : "";
                   return (
                     <Col
+                      xs={16 / vall.length}
                       style={{
                         alignContent: "center",
                         justifyContent: "center",
