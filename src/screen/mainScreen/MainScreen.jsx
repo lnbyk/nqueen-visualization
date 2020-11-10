@@ -114,19 +114,22 @@ export default class MainScreen extends React.Component {
         set.has(i + "row") ||
         set.has(j + "col") ||
         set.has(i - j + "d") ||
+        set.has(i + j + "d") ||
         this.state.board[i][j] === 1
       )
         continue;
       set.add(i + "row");
       set.add(j + "col");
-      set.add(i - j + "d");
+      set.add(i - j  + "d");
+      set.add(i + j  + "d");
       a.push([i, j]);
       var cur = n - 1;
       this.backTracking(set, start + 1, cur, board, a, ans);
       a.pop();
       set.delete(i + "row");
       set.delete(j + "col");
-      set.delete(i - j + "d");
+      set.delete(i - j  + "d");
+      set.delete(i + j  + "d");
     }
   };
 
@@ -141,7 +144,8 @@ export default class MainScreen extends React.Component {
       this.setState({ board: curIndex });
       visited.add(i + "row");
       visited.add(j + "col");
-      visited.add(i - j + "d");
+      visited.add(i - j +  "d");
+      visited.add(j + i + "d");
       this.setState({ queens: this.state.queens - 1 });
     } else {
       alert("There is no queen left");
