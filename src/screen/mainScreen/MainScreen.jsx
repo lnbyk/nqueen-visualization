@@ -70,6 +70,10 @@ export default class MainScreen extends React.Component {
   };
 
   change = (e, i) => {
+    if (this.state.solution.length === 0) {
+      alert("there is solution for this puzzle yet");
+      return;
+    }
     var cur = [];
     for (var j = 0; j < 8; j++) cur.push(this.state.board[j]);
     const solutionnow = this.state.solution[i] || this.state.solution[0];
@@ -82,14 +86,15 @@ export default class MainScreen extends React.Component {
   solve = () => {
     var list = [],
       ans = [];
-    this.backTracking(
-      visited,
-      0,
-      this.state.queens,
-      this.state.board,
-      list,
-      ans
-    );
+      this.backTracking(
+        visited,
+        0,
+        this.state.queens,
+        this.state.board,
+        list,
+        ans
+      );
+
     this.setState({ solution: ans });
     if (ans.length === 0) {
       alert("there is no solution for this board");
@@ -120,16 +125,16 @@ export default class MainScreen extends React.Component {
         continue;
       set.add(i + "row");
       set.add(j + "col");
-      set.add(i - j  + "d");
-      set.add(i + j  + "d");
+      set.add(i - j + "d");
+      set.add(i + j + "d");
       a.push([i, j]);
       var cur = n - 1;
       this.backTracking(set, start + 1, cur, board, a, ans);
       a.pop();
       set.delete(i + "row");
       set.delete(j + "col");
-      set.delete(i - j  + "d");
-      set.delete(i + j  + "d");
+      set.delete(i - j + "d");
+      set.delete(i + j + "d");
     }
   };
 
@@ -144,7 +149,7 @@ export default class MainScreen extends React.Component {
       this.setState({ board: curIndex });
       visited.add(i + "row");
       visited.add(j + "col");
-      visited.add(i - j +  "d");
+      visited.add(i - j + "d");
       visited.add(j + i + "d");
       this.setState({ queens: this.state.queens - 1 });
     } else {
@@ -185,13 +190,12 @@ export default class MainScreen extends React.Component {
                   </Item>
                 );
               })}
-        
           </Modal.Body>
           <Modal.Footer>
-              <Button variant="secondary" onClick={(e) => this.change(e, 0)}>
-                yes
-              </Button>
-            </Modal.Footer>
+            <Button variant="secondary" onClick={(e) => this.change(e)}>
+              yes
+            </Button>
+          </Modal.Footer>
         </Modal>
         <Modal show={show} onHide={this.handleClose}>
           <Modal.Header closeButton>
