@@ -366,7 +366,7 @@ export default class MainScreen extends React.Component {
                 variant="warning"
                 onClick={this.unavailable}
               >
-                sovling puzzle
+                show unavailable area
               </Button>
             </Col>
           </Row>
