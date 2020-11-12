@@ -2,6 +2,8 @@ import React from "react";
 import { Container, Row, Col, Button, Modal, ListGroup } from "react-bootstrap";
 import "./aaaa.css";
 import ab from "../../queen.png";
+import x from "../../x.png";
+import { set } from "nprogress";
 
 const Item = ListGroup.Item;
 const colors = {
@@ -20,6 +22,7 @@ export default class MainScreen extends React.Component {
     super(props);
     this.state = {
       board: [],
+      board2: [],
       /*
       board: [
         [0, 0, 0, 0],
@@ -29,6 +32,7 @@ export default class MainScreen extends React.Component {
       ],
       */
       solution: [],
+      occupied: new Set(),
       queens: 8,
       show: false,
       showselected: false,
@@ -40,8 +44,10 @@ export default class MainScreen extends React.Component {
     var curBoard = [];
     for (var i = 0; i < this.state.queens; i++) {
       curBoard.push(new Array(this.state.queens).fill(0));
+      this.state.occupied.add(i);
     }
     this.setState({ board: curBoard });
+    this.setState({ board2: JSON.parse(JSON.stringify(curBoard)) });
   }
 
   clear = () => {
@@ -55,17 +61,23 @@ export default class MainScreen extends React.Component {
       queens: 8,
     });
 
-    alert(JSON.stringify(newBoard));
+    //alert(JSON.stringify(newBoard));
     this.forceUpdate();
   };
 
-  setCurSolution = (e, i) => {
-    var cur = [];
-    for (var j = 0; j < 8; j++) cur.push(this.state.board[j]);
-    this.state.solution[i].forEach((val) => {
-      cur[val[0]][val[1]] = 1;
+  unavailable = () => {
+    const tmpboard = JSON.parse(JSON.stringify(this.state.board));
+    this.state.occupied.forEach((val) => {
+      for (var i = 0; i < this.state.queens; i++) {
+        if (this.isSave(this.state.board, i, val) === false )
+          tmpboard[i][val] = -1;
+      }
     });
-    this.setState({ curSelectSolution: cur });
+    this.setState({ board: tmpboard });
+    this.forceUpdate();
+  };
+  setCurSolution = (e, i) => {
+    this.setState({ curSelectSolution: this.state.solution[i] });
     this.handleOpenS();
   };
 
@@ -74,16 +86,13 @@ export default class MainScreen extends React.Component {
       alert("there is solution for this puzzle yet");
       return;
     }
-    var cur = [];
-    for (var j = 0; j < 8; j++) cur.push(this.state.board[j]);
-    const solutionnow = this.state.solution[i] || this.state.solution[0];
-    solutionnow.forEach((val) => {
-      cur[val[0]][val[1]] = 1;
-    });
-    this.setState({ board: cur });
+    const solutionnow = this.state.curSelectSolution || this.state.solution[0];
+    this.setState({ board: JSON.parse(JSON.stringify(solutionnow)) });
   };
 
   solve = () => {
+    //alert(JSON.stringify(this.state.board));
+    /*
     var list = [],
       ans = [];
       this.backTracking(
@@ -94,68 +103,87 @@ export default class MainScreen extends React.Component {
         list,
         ans
       );
+    */
+    if (this.solveThePuzzle(this.state.board2, 0) === false)
+      alert("there is solution for this board");
 
-    this.setState({ solution: ans });
-    if (ans.length === 0) {
-      alert("there is no solution for this board");
-    }
+    const after_filter = [];
+    this.state.solution.forEach((vall) => {
+      var contains = true;
+      visited.forEach((val) => {
+        //alert(val[0] +"" +val[1]);
+        if (vall[val[0]][val[1]] === 0) {
+          contains = false;
+        }
+      });
+      if (contains === true) after_filter.push(vall);
+    });
+
+    //alert(JSON.stringify(after_filter));
+    this.setState({ solution: after_filter });
     this.forceUpdate();
   };
 
-  backTracking = (set, x, n, board, a, ans) => {
-    if (n === 0) {
-      var tmp = [];
-      a.forEach((val) => {
-        tmp.push(val);
-      });
-      ans.push(tmp);
+  addqueen = (e, i, j) => {
+    if (!this.isSave(this.state.board, i, j) && (this.state.board[i][j] === 0 || this.state.board[i][j] === -1)) {
+      alert("this position can not place queen");
       return;
     }
-
-    for (var start = x; start < board.length * board.length; start++) {
-      var i = parseInt(start / board.length, 10),
-        j = parseInt(start % board.length, 10);
-      if (
-        set.has(i + "row") ||
-        set.has(j + "col") ||
-        set.has(i - j + "d") ||
-        set.has(i + j + "d") ||
-        this.state.board[i][j] === 1
-      )
-        continue;
-      set.add(i + "row");
-      set.add(j + "col");
-      set.add(i - j + "d");
-      set.add(i + j + "d");
-      a.push([i, j]);
-      var cur = n - 1;
-      this.backTracking(set, start + 1, cur, board, a, ans);
-      a.pop();
-      set.delete(i + "row");
-      set.delete(j + "col");
-      set.delete(i - j + "d");
-      set.delete(i + j + "d");
-    }
-  };
-
-  addqueen = (e, i, j) => {
     var curIndex = this.state.board;
     if (curIndex[i][j] === 1) {
       curIndex[i][j] = 0;
       this.setState({ board: curIndex });
-      this.setState({ queens: this.state.queens + 1 });
+      visited.delete([i, j]);
+      this.state.occupied.add(j);
     } else if (curIndex[i][j] === 0 && this.state.queens > 0) {
       curIndex[i][j] = 1;
+      visited.add([i, j]);
       this.setState({ board: curIndex });
-      visited.add(i + "row");
-      visited.add(j + "col");
-      visited.add(i - j + "d");
-      visited.add(j + i + "d");
-      this.setState({ queens: this.state.queens - 1 });
+      this.state.occupied.delete(j);
     } else {
       alert("There is no queen left");
     }
     this.forceUpdate();
+  };
+
+  // ************************************************************
+  isSave = (board, row, col) => {
+    var i, j;
+    for (i = 0; i < board.length; i++) if (board[row][i] === 1) return false;
+
+    for (i = row, j = col; i >= 0 && j >= 0; i--, j--)
+      if (board[i][j] === 1) return false;
+
+    for (i = row, j = col; j >= 0 && i < board.length; i++, j--)
+      if (board[i][j] === 1) return false;
+    // used for function unavaliable
+    for (i = row, j = col; i < board.length && j < board.length; i++, j++)
+      if (board[i][j] === 1) return false;
+    for (i = row, j = col; i >= 0 && j < board.length; i--, j++)
+      if (board[i][j] === 1) return false;
+    for (i = board.length; i >= 0; i--) if (board[row][i] === 1) return false;
+    return true;
+  };
+
+  solveThePuzzle = (board, col) => {
+    if (col === board.length) {
+      this.state.solution.push(JSON.parse(JSON.stringify(board)));
+      return true;
+    }
+
+    var res = false;
+    for (var i = 0; i < board.length; i++) {
+      if (visited.has(col + "" + i + "")) {
+        alert(1);
+        continue;
+      }
+      if (this.isSave(board, i, col)) {
+        board[i][col] = 1;
+        res = this.solveThePuzzle(board, col + 1) || res;
+        board[i][col] = 0;
+      }
+    }
+    return res;
   };
 
   // close modal
@@ -223,7 +251,7 @@ export default class MainScreen extends React.Component {
             </Button>
           </Modal.Footer>
         </Modal>
-        <Container style={{ marginTop: "10vh", marginBottom: " 10vh" }}>
+        <Container style={{ marginTop: "10vh", marginBottom: " 10vh"}}>
           <Row>
             <Col xs={3}>
               {" "}
@@ -266,6 +294,7 @@ export default class MainScreen extends React.Component {
               </Button>
             </Col>
           </Row>
+          <div style={{outline: "solid 5px", marginTop:'10px',  marginBottom:'12px'}}>
           {this.state.board.map((val, index) => {
             return (
               <Row
@@ -282,7 +311,18 @@ export default class MainScreen extends React.Component {
               >
                 {val.map((vall, a) => {
                   const cur = index % 2 === 0 ? colors2 : colors;
-                  const img = vall === 1 ? ab : "";
+                  var img = "";
+                  switch (vall) {
+                    default:
+                      img = "";
+                      break;
+                    case 1:
+                      img = ab;
+                      break;
+                    case -1:
+                      img = x;
+                      break;
+                  }
                   return (
                     <Col
                       xs={16 / vall.length}
@@ -317,6 +357,19 @@ export default class MainScreen extends React.Component {
               </Row>
             );
           })}
+          </div>
+          <Row>
+            <Col xs={3}>
+              {" "}
+              <Button
+                style={{ width: "80%" }}
+                variant="warning"
+                onClick={this.unavailable}
+              >
+                sovling puzzle
+              </Button>
+            </Col>
+          </Row>
         </Container>
       </>
     );
